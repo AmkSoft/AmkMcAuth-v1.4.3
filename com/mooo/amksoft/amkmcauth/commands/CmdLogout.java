@@ -1,0 +1,69 @@
+package com.mooo.amksoft.amkmcauth.commands;
+
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.entity.Player;
+
+import com.mooo.amksoft.amkmcauth.AuthPlayer;
+import com.mooo.amksoft.amkmcauth.Config;
+import com.mooo.amksoft.amkmcauth.Language;
+import com.mooo.amksoft.amkmcauth.AmkMcAuth;
+import com.mooo.amksoft.amkmcauth.AmkAUtils;
+
+public class CmdLogout implements CommandExecutor {
+
+    private final AmkMcAuth plugin;
+
+    public CmdLogout(AmkMcAuth instance) {
+        this.plugin = instance;
+    }
+
+    @Override
+    public boolean onCommand(CommandSender cs, Command cmd, String label, String[] args) {
+        if (cmd.getName().equalsIgnoreCase("logout")) {
+            if (!cs.hasPermission("amkauth.logout")) {
+                AmkAUtils.dispNoPerms(cs);
+                return true;
+            }
+            if (!(cs instanceof Player)) {
+                cs.sendMessage(ChatColor.RED + Language.COMMAND_NO_CONSOLE.toString());
+                return true;
+            }
+            Player p = (Player) cs;
+            AuthPlayer ap = AuthPlayer.getAuthPlayer(p);
+            if (!ap.isLoggedIn()) {
+                cs.sendMessage(ChatColor.RED + Language.NOT_LOGGED_IN.toString());
+                return true;
+            }
+            cs.sendMessage(ChatColor.BLUE + Language.LOGGED_OUT.toString());
+            ap.setLastQuitTimestamp(System.currentTimeMillis());
+            ap.setLastJoinTimestamp(System.currentTimeMillis());
+            ap.logout(this.plugin);
+
+
+	        ConsoleCommandSender console = Bukkit.getServer().getConsoleSender();
+            for (String playerAction : Config.playerActionLogof) {
+    			if(!playerAction.trim().isEmpty()) {
+    	            //Bukkit.dispatchCommand(console, playerAction.replace("$P", ap.getUserName()));
+
+    	        	try {
+    	        		Bukkit.dispatchCommand(console, playerAction.replace("$P", ap.getUserName()));
+    	        	} catch (Exception  error  ) {
+    	            	this.plugin.getLogger().info("Error Logoff Executing: " + playerAction.replace("$P", ap.getUserName()) );
+    	            	error.printStackTrace();
+    	        	}
+    	            
+    				//AmkMcAuth.MyQueue.Put("executeConsoleCommand:~" + playerAction.replace("$P", ap.getUserName()));
+    			}
+    		}
+            
+            return true;
+        }
+        return false;
+    }
+
+}
